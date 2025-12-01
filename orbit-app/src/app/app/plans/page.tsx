@@ -88,9 +88,12 @@ export default async function PlansPage() {
             everything here is just waiting for your first idea.
           </p>
           <div>
-            <button className="rounded-full bg-[linear-gradient(135deg,#ff6cab,#7366ff)] px-4 py-2 text-xs sm:text-sm font-semibold text-black hover:opacity-90 transition">
+            <Link
+              href="/app/plans/new"
+              className="rounded-full bg-[linear-gradient(135deg,#ff6cab,#7366ff)] px-4 py-2 text-xs sm:text-sm font-semibold text-black hover:opacity-90 transition inline-flex items-center justify-center"
+            >
               New plan
-            </button>
+            </Link>
           </div>
         </div>
       )}

@@ -13,6 +13,6 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: databaseUrl, // ✅ Prisma 7 expects url here, NOT in schema.prisma
+    url: databaseUrl, // ✅ this is where Prisma 7 wants it
   },
 });

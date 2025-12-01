@@ -124,6 +124,7 @@ export default function NewPlanPage() {
 
         {/* Timeframe + intensity */}
         <div className="grid gap-4 sm:grid-cols-2">
+          {/* Timeframe */}
           <div className="space-y-1.5">
             <label
               htmlFor="timeframeWeeks"
@@ -131,24 +132,50 @@ export default function NewPlanPage() {
             >
               Rough timeframe
             </label>
-            <select
-              id="timeframeWeeks"
-              name="timeframeWeeks"
-              defaultValue="12"
-              className="w-full rounded-xl border border-orbit-border bg-black/60 px-3 py-2 text-sm outline-none focus:border-orbit-pink/70"
-            >
-              <option value="4">About 1 month</option>
-              <option value="8">About 2 months</option>
-              <option value="12">About 3 months</option>
-              <option value="24">About 6 months</option>
-              <option value="52">About 1 year</option>
-            </select>
+
+            <div className="relative">
+              <select
+                id="timeframeWeeks"
+                name="timeframeWeeks"
+                defaultValue="12"
+                className="
+          w-full rounded-xl border border-orbit-border bg-black/60
+          px-3 py-2 text-sm outline-none focus:border-orbit-pink/70
+          appearance-none pr-10
+        "
+              >
+                <option value="4">About 1 month</option>
+                <option value="8">About 2 months</option>
+                <option value="12">About 3 months</option>
+                <option value="24">About 6 months</option>
+                <option value="52">About 1 year</option>
+              </select>
+
+              {/* Custom arrow */}
+              <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                <svg
+                  className="h-4 w-4 text-orbit-muted"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </div>
+            </div>
+
             <p className="text-[11px] text-orbit-muted">
               This doesn&apos;t have to be perfect—Orbit just uses it to size
               the plan.
             </p>
           </div>
 
+          {/* Intensity */}
           <div className="space-y-1.5">
             <label
               htmlFor="intensity"
@@ -156,16 +183,41 @@ export default function NewPlanPage() {
             >
               How intense should this be?
             </label>
-            <select
-              id="intensity"
-              name="intensity"
-              defaultValue="steady"
-              className="w-full rounded-xl border border-orbit-border bg-black/60 px-3 py-2 text-sm outline-none focus:border-orbit-pink/70"
-            >
-              <option value="gentle">Gentle – low pressure</option>
-              <option value="steady">Steady – realistic pace</option>
-              <option value="intense">Intense – big push</option>
-            </select>
+
+            <div className="relative">
+              <select
+                id="intensity"
+                name="intensity"
+                defaultValue="steady"
+                className="
+          w-full rounded-xl border border-orbit-border bg-black/60
+          px-3 py-2 text-sm outline-none focus:border-orbit-pink/70
+          appearance-none pr-10
+        "
+              >
+                <option value="gentle">Gentle – low pressure</option>
+                <option value="steady">Steady – realistic pace</option>
+                <option value="intense">Intense – big push</option>
+              </select>
+
+              {/* Custom arrow */}
+              <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                <svg
+                  className="h-4 w-4 text-orbit-muted"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </div>
+            </div>
+
             <p className="text-[11px] text-orbit-muted">
               You can change this later; it just tells Orbit how aggressive to
               be with actions.

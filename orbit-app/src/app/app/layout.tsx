@@ -6,9 +6,17 @@ import { getOrCreateCurrentUser } from "@/lib/getOrCreateCurrentUser";
 import { AppUserActions } from "@/components/AppUserActions";
 import { AppNavAnimate } from "@/components/AppNavAnimate";
 
+type AuthUserShape = {
+  displayName?: string | null;
+  primaryEmail?: string | null;
+  username?: string | null;
+  imageUrl?: string | null;
+  profileImageUrl?: string | null;
+};
+
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const { authUser, dbUser } = await getOrCreateCurrentUser();
-  const auth = authUser as any;
+  const auth = authUser as AuthUserShape;
 
   const displayName =
     dbUser.name ?? auth.displayName ?? auth.primaryEmail ?? "Orbit user";
@@ -34,8 +42,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                   alt="Orbit"
                   width={160}
                   height={160}
-                  priority
                   className="w-auto h-8 sm:h-10"
+                  loading="lazy" // for non-critical ones
                 />
               </div>
             </Link>

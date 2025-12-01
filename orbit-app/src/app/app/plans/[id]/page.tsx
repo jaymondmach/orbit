@@ -7,8 +7,8 @@ import { GeneratePlanButton } from "./GeneratePlanButton";
 import { PlanStepFlow, type FlowStep } from "./PlanStepFlow";
 import { getOrCreateCurrentUser } from "@/lib/getOrCreateCurrentUser";
 
-type PageProps = {
-  params: { id: string };
+type PlanRouteParams = {
+  id: string;
 };
 
 // Mirror the shape from your API route
@@ -73,7 +73,7 @@ function planToSteps(plan: GeneratedPlan): FlowStep[] {
 }
 
 // Identity badge: emoji + gradient based on goal text
-function getPlanIdentity(goalInput: string, intensity: string) {
+function getPlanIdentity(goalInput: string) {
   const g = goalInput.toLowerCase();
 
   if (g.match(/gym|workout|weight|muscle|fitness|health|run|running|cardio/)) {
@@ -188,13 +188,16 @@ async function updatePlan(formData: FormData) {
   revalidatePath("/app/plans");
 }
 
-export default async function PlanPage({ params }: PageProps) {
+export default async function PlanPage(props: unknown) {
+  // Narrow props locally so we still have types in the file
+  const { params } = props as { params: PlanRouteParams };
+
   const { dbUser } = await getOrCreateCurrentUser();
 
   const plan = await prisma.plan.findFirst({
     where: {
       id: params.id,
-      userId: dbUser.id, // ⬅️ only load if it belongs to this DB user
+      userId: dbUser.id,
     },
     include: {
       stepProgresses: true,
@@ -206,7 +209,7 @@ export default async function PlanPage({ params }: PageProps) {
   const hasOutput = Boolean(plan.outputJson);
   const generatedPlan = (plan.outputJson ?? null) as GeneratedPlan | null;
   const steps = generatedPlan ? planToSteps(generatedPlan) : [];
-  const identity = getPlanIdentity(plan.goalInput, plan.intensity);
+  const identity = getPlanIdentity(plan.goalInput);
 
   const initialCompletedIndices =
     plan.stepProgresses
@@ -306,7 +309,6 @@ export default async function PlanPage({ params }: PageProps) {
 
         {/* Timeframe + Intensity */}
         <div className="grid gap-6 sm:grid-cols-2">
-          {/* Timeframe */}
           <div className="space-y-2">
             <label
               htmlFor="timeframeWeeks"
@@ -333,7 +335,6 @@ export default async function PlanPage({ params }: PageProps) {
             </select>
           </div>
 
-          {/* Intensity */}
           <div className="space-y-2">
             <label
               htmlFor="intensity"
@@ -359,7 +360,6 @@ export default async function PlanPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Actions */}
         <div className="flex items-center justify-between gap-3 pt-2">
           <p className="text-sm text-orbit-muted max-w-xs">
             Changes save automatically so you can refine your goals over time.
@@ -385,7 +385,6 @@ export default async function PlanPage({ params }: PageProps) {
       {/* Generated Plan */}
       {generatedPlan && (
         <section className="orbit-card p-6 sm:p-8 space-y-6">
-          {/* Blueprint header with identity badge */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
               <div
@@ -410,7 +409,6 @@ export default async function PlanPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* Animated timeline bar */}
           <div className="space-y-2">
             <div className="relative h-2 w-full rounded-full bg-orbit-border/40 overflow-hidden">
               <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,108,171,0.4),transparent)] animate-[pulse_2s_ease-in-out_infinite]" />
@@ -437,21 +435,18 @@ export default async function PlanPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* Summary */}
           {generatedPlan.summary && (
             <p className="text-base text-orbit-muted leading-relaxed border border-orbit-border/70 rounded-2xl bg-black/40 px-5 py-4">
               {generatedPlan.summary}
             </p>
           )}
 
-          {/* Step Flow with progress tracking */}
           <PlanStepFlow
             planId={plan.id}
             steps={steps}
             initialCompletedIndices={initialCompletedIndices}
           />
 
-          {/* Obstacles & Notes */}
           {(generatedPlan.obstaclesAndSafeties?.length ?? 0) > 0 ||
           generatedPlan.notes ? (
             <div className="grid gap-6 sm:grid-cols-2">

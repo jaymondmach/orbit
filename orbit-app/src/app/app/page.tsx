@@ -2,10 +2,21 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateCurrentUser } from "@/lib/getOrCreateCurrentUser";
+import Image from "next/image";
+
+type AuthUserShape = {
+  displayName?: string | null;
+  primaryEmail?: string | null;
+  email?: string | null;
+  emailAddress?: string | null;
+  imageUrl?: string | null;
+  profileImageUrl?: string | null;
+  username?: string | null;
+};
 
 export default async function AppHomePage() {
   const { authUser, dbUser } = await getOrCreateCurrentUser();
-  const auth = authUser as any;
+  const auth = authUser as AuthUserShape;
 
   const avatarUrl =
     dbUser.imageUrl ??
@@ -16,11 +27,20 @@ export default async function AppHomePage() {
   const displayName =
     dbUser.name ?? auth.displayName ?? auth.username ?? "Orbit user";
 
-  // Load this user's plans + step progress
+  // Load this user's plans + *only* the step fields we need (completedAt)
   const plans = await prisma.plan.findMany({
     where: { userId: dbUser.id },
-    include: {
-      stepProgresses: true,
+    select: {
+      id: true,
+      title: true,
+      goalInput: true,
+      status: true,
+      createdAt: true,
+      stepProgresses: {
+        select: {
+          completedAt: true,
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -51,9 +71,11 @@ export default async function AppHomePage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <img
+          <Image
             src={avatarUrl}
             alt="Profile"
+            width={40}
+            height={40}
             className="h-10 w-10 rounded-full object-cover border border-orbit-border"
           />
           <div className="flex flex-col items-end">

@@ -6,13 +6,12 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is not set. Check your .env / .env.local.");
 }
 
-// Prisma 7 requires a driver adapter for Postgres
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
 });
 
+// Prevent multiple instances in dev
 declare global {
-  // eslint-disable-next-line no-var
   var prisma: PrismaClient | undefined;
 }
 

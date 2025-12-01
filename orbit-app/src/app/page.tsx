@@ -78,8 +78,8 @@ export default function Home() {
               alt="Orbit"
               width={160}
               height={160}
-              priority
               className="w-auto h-8 sm:h-10"
+              loading="lazy" // for non-critical ones
             />
           </div>
 

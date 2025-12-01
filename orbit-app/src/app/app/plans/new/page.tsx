@@ -2,7 +2,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
 
 async function createPlan(formData: FormData) {
   "use server";

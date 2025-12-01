@@ -2,43 +2,43 @@
 import { prisma } from "@/lib/prisma";
 import { stackServerApp } from "@/stack/server";
 
+type StackUserShape = {
+  id: string;
+  primaryEmail?: string | null;
+  email?: string | null;
+  emailAddress?: string | null;
+  displayName?: string | null;
+  username?: string | null;
+  imageUrl?: string | null;
+  profileImageUrl?: string | null;
+};
+
 export async function getOrCreateCurrentUser() {
-  // Redirects to login if not signed in
   const authUser = await stackServerApp.getUser({ or: "redirect" });
+  const stackUser = authUser as StackUserShape;
 
-  // 👇 Adjust these to match your Stack user shape if needed
-  const stackUserId = (authUser as any).userId ?? (authUser as any).id;
-  const email =
-    (authUser as any).email ??
-    (authUser as any).primaryEmail ??
-    (authUser as any).emailAddresses?.[0]?.emailAddress ??
-    "";
-  const name =
-    (authUser as any).name ??
-    (authUser as any).fullName ??
-    (authUser as any).username ??
-    null;
-  const imageUrl =
-    (authUser as any).imageUrl ?? (authUser as any).profileImageUrl ?? null;
+  const primaryEmail =
+    stackUser.primaryEmail ??
+    stackUser.email ??
+    stackUser.emailAddress ??
+    undefined;
 
-  if (!stackUserId || !email) {
-    throw new Error("Authenticated user is missing stackUserId or email");
-  }
-
-  let dbUser = await prisma.user.findUnique({
-    where: { stackUserId },
+  const existing = await prisma.user.findUnique({
+    where: { stackUserId: stackUser.id },
   });
 
-  if (!dbUser) {
-    dbUser = await prisma.user.create({
-      data: {
-        stackUserId,
-        email,
-        name,
-        imageUrl,
-      },
-    });
+  if (existing) {
+    return { authUser, dbUser: existing };
   }
+
+  const dbUser = await prisma.user.create({
+    data: {
+      stackUserId: stackUser.id,
+      email: primaryEmail ?? "unknown@example.com",
+      name: stackUser.displayName ?? stackUser.username ?? null,
+      imageUrl: stackUser.imageUrl ?? stackUser.profileImageUrl ?? null,
+    },
+  });
 
   return { authUser, dbUser };
 }

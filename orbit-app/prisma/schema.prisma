@@ -51,6 +51,7 @@ model Plan {
   updatedAt      DateTime @updatedAt
 
   stepProgresses PlanStepProgress[]
+  @@index([userId])
 }
 
 model PlanStepProgress {
@@ -62,5 +63,7 @@ model PlanStepProgress {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+
+  @@index([planId])
   @@unique([planId, stepIndex])
 }

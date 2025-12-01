@@ -5,10 +5,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getOrCreateCurrentUser } from "@/lib/getOrCreateCurrentUser";
 
-type PageProps = {
-  searchParams?: {
+// Match Next 15's generated PageProps, which expects `searchParams?: Promise<any>`
+type PlansPageProps = {
+  searchParams?: Promise<{
     q?: string;
-  };
+  }>;
 };
 
 async function createPlan(formData: FormData) {
@@ -51,11 +52,17 @@ async function createPlan(formData: FormData) {
   redirect(`/app/plans/${plan.id}`);
 }
 
-export default async function PlansPage({ searchParams }: PageProps) {
+export default async function PlansPage({ searchParams }: PlansPageProps) {
   const { authUser, dbUser } = await getOrCreateCurrentUser();
-  const user = authUser as any;
+  const user = authUser as {
+    displayName?: string | null;
+    primaryEmail?: string | null;
+  };
 
-  const q = (searchParams?.q ?? "").trim();
+  // `searchParams` is typed as a Promise, but `await` works whether it's actually a
+  // promise or a plain object at runtime.
+  const params = (await searchParams) ?? {};
+  const q = (params.q ?? "").trim();
 
   const plans = await prisma.plan.findMany({
     where: {

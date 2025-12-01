@@ -49,9 +49,19 @@ async function updateProfile(formData: FormData) {
   revalidatePath("/app");
 }
 
+type AuthUserShape = {
+  displayName?: string | null;
+  primaryEmail?: string | null;
+  username?: string | null;
+  imageUrl?: string | null;
+  profileImageUrl?: string | null;
+  email?: string | null;
+  emailAddress?: string | null;
+};
+
 export default async function ProfilePage() {
   const { authUser, dbUser } = await getOrCreateCurrentUser();
-  const auth = authUser as any;
+  const auth = authUser as AuthUserShape;
 
   const displayEmail =
     auth.primaryEmail || auth.email || auth.emailAddress || dbUser.email || "";
@@ -227,8 +237,8 @@ export default async function ProfilePage() {
               className="w-full rounded-xl border border-orbit-border bg-black/60 px-4 py-2.5 text-sm sm:text-base outline-none focus:border-orbit-pink/70"
             />
             <p className="text-[11px] text-orbit-muted">
-              If provided, Orbit will use this instead of your auth provider's
-              picture or the default avatar.
+              If provided, Orbit will use this instead of your auth
+              provider&apos;s picture or the default avatar.
             </p>
           </div>
         </section>

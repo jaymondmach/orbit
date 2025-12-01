@@ -148,3 +148,21 @@ button:hover {
 button:active {
   transform: scale(0.97);
 }
+
+/* ========================= */
+/* Scroll / load fade-in     */
+/* ========================= */
+
+[data-animate] {
+  opacity: 0;
+  transform: translateY(16px);
+  filter: blur(4px);
+  transition: opacity 480ms ease-out, transform 480ms ease-out,
+    filter 480ms ease-out;
+}
+
+.fade-in-visible {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}

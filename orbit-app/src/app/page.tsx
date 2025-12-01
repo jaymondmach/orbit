@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
+import { useEffect } from "react";
 
 function scrollToSection(id: string) {
   if (typeof document === "undefined") return;
@@ -13,11 +15,58 @@ function scrollToSection(id: string) {
 export default function Home() {
   const year = new Date().getFullYear();
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const elements = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-animate]")
+    );
+
+    // Respect reduced motion settings
+    if (
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      elements.forEach((el) => {
+        el.style.opacity = "1";
+        el.style.transform = "none";
+      });
+      return;
+    }
+
+    // Stagger by DOM order: top → bottom
+    elements.forEach((el, index) => {
+      el.style.transitionDelay = `${index * 80}ms`;
+    });
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("fade-in-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      {
+        threshold: 0.15,
+        rootMargin: "0px 0px -10% 0px",
+      }
+    );
+
+    elements.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <main className="min-h-screen text-orbit-text">
       {/* Top nav */}
       <header>
-        <div className="orbit-container flex h-24 items-center justify-between">
+        <div
+          className="orbit-container flex h-24 items-center justify-between"
+          data-animate
+        >
           {/* Logo only */}
           <div className="flex items-center">
             <Image
@@ -57,9 +106,11 @@ export default function Home() {
             <button className="hidden sm:inline-flex items-center justify-center rounded-full border border-orbit-border px-4 py-2 text-sm text-orbit-muted hover:border-white/40 hover:text-white transition">
               Log in
             </button>
-            <button className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#ff6cab,#7366ff)] px-5 py-2 text-sm font-semibold text-black hover:opacity-90 transition">
-              Launch Orbit
-            </button>
+            <Link href="/app/plans">
+              <button className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#ff6cab,#7366ff)] px-5 py-2 text-sm font-semibold text-black hover:opacity-90 transition">
+                Launch Orbit
+              </button>
+            </Link>
           </div>
         </div>
       </header>
@@ -67,7 +118,10 @@ export default function Home() {
       {/* Main content */}
       <div className="orbit-container py-10 sm:py-14 lg:py-16 space-y-12">
         {/* Hero */}
-        <section className="flex flex-col items-start gap-10 lg:flex-row lg:items-center">
+        <section
+          className="flex flex-col items-start gap-10 lg:flex-row lg:items-center"
+          data-animate
+        >
           {/* Left - copy */}
           <div className="flex-1 space-y-7">
             <div className="inline-flex items-center gap-2 rounded-full border border-orbit-border bg-black/70 px-3 py-1">
@@ -115,7 +169,7 @@ export default function Home() {
 
           {/* Right - example plan card */}
           <div className="flex-1 w-full lg:max-w-md">
-            <div className="orbit-card relative p-4 sm:p-5 lg:p-6">
+            <div className="orbit-card relative p-4 sm:p-5 lg:p-6" data-animate>
               {/* small halo */}
               <div className="pointer-events-none absolute -top-20 right-0 h-40 w-40 rounded-full bg-orbit-accent opacity-20 blur-3xl" />
 
@@ -206,6 +260,7 @@ export default function Home() {
         <section
           id="product"
           className="orbit-section space-y-4 p-4 sm:p-6 rounded-3xl"
+          data-animate
         >
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-lg sm:text-xl font-semibold">
@@ -217,7 +272,7 @@ export default function Home() {
           </div>
 
           <div className="grid gap-4 sm:gap-5 md:grid-cols-3">
-            <div className="orbit-card p-4 sm:p-5 space-y-2">
+            <div className="orbit-card p-4 sm:p-5 space-y-2" data-animate>
               <p className="text-2xs uppercase tracking-[0.18em] text-orbit-muted">
                 01 · Clarity
               </p>
@@ -229,7 +284,7 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="orbit-card p-4 sm:p-5 space-y-2">
+            <div className="orbit-card p-4 sm:p-5 space-y-2" data-animate>
               <p className="text-2xs uppercase tracking-[0.18em] text-orbit-muted">
                 02 · Direction
               </p>
@@ -243,7 +298,7 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="orbit-card p-4 sm:p-5 space-y-2">
+            <div className="orbit-card p-4 sm:p-5 space-y-2" data-animate>
               <p className="text-2xs uppercase tracking-[0.18em] text-orbit-muted">
                 03 · Momentum
               </p>
@@ -261,7 +316,10 @@ export default function Home() {
         <div className="h-px w-full bg-orbit-border/60" />
 
         {/* How it works (also part of Product) */}
-        <section className="orbit-section space-y-5 p-4 sm:p-6 rounded-3xl">
+        <section
+          className="orbit-section space-y-5 p-4 sm:p-6 rounded-3xl"
+          data-animate
+        >
           <h2 className="text-lg sm:text-xl font-semibold">How Orbit works</h2>
 
           <div className="grid gap-4 md:grid-cols-3">
@@ -282,7 +340,11 @@ export default function Home() {
                 body: "Orbit turns your goal into milestones, timelines, and simple next actions you can actually stick to.",
               },
             ].map((item) => (
-              <div key={item.step} className="orbit-card p-4 sm:p-5 space-y-3">
+              <div
+                key={item.step}
+                className="orbit-card p-4 sm:p-5 space-y-3"
+                data-animate
+              >
                 <div className="inline-flex items-center gap-2 rounded-full border border-orbit-border px-2.5 py-1 text-2xs text-orbit-muted">
                   <span className="bg-orbit-accent bg-clip-text text-transparent font-semibold">
                     {item.step}
@@ -303,6 +365,7 @@ export default function Home() {
         <section
           id="use-cases"
           className="orbit-section space-y-5 p-4 sm:p-6 rounded-3xl"
+          data-animate
         >
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-lg sm:text-xl font-semibold">
@@ -336,7 +399,11 @@ export default function Home() {
                 prompt: `"I want to finally finish my side project and build a simple routine around it instead of random bursts."`,
               },
             ].map((item) => (
-              <div key={item.title} className="orbit-card p-4 sm:p-5 space-y-3">
+              <div
+                key={item.title}
+                className="orbit-card p-4 sm:p-5 space-y-3"
+                data-animate
+              >
                 <span className="inline-flex items-center rounded-full border border-orbit-border px-2.5 py-1 text-2xs text-orbit-muted">
                   {item.label}
                 </span>
@@ -356,6 +423,7 @@ export default function Home() {
         <section
           id="roadmap"
           className="orbit-section space-y-5 p-4 sm:p-6 rounded-3xl"
+          data-animate
         >
           <h2 className="text-lg sm:text-xl font-semibold">
             Built for real life
@@ -380,7 +448,11 @@ export default function Home() {
                 body: "Not at all. Orbit works for big life shifts and small stuff: resetting your sleep schedule, cleaning your space, learning a skill, or finally sending those emails you've been avoiding.",
               },
             ].map((item) => (
-              <div key={item.title} className="orbit-card p-4 sm:p-5 space-y-2">
+              <div
+                key={item.title}
+                className="orbit-card p-4 sm:p-5 space-y-2"
+                data-animate
+              >
                 <h3 className="text-sm font-semibold text-orbit-text">
                   {item.title}
                 </h3>
@@ -392,7 +464,7 @@ export default function Home() {
       </div>
 
       {/* Official footer */}
-      <footer id="footer" className="pt-8 pb-6 mt-8">
+      <footer id="footer" className="pt-8 pb-6 mt-8" data-animate>
         <div className="orbit-container flex flex-col gap-8">
           {/* Top row */}
           <div className="flex flex-col md:flex-row justify-between gap-8">
@@ -406,9 +478,6 @@ export default function Home() {
                   height={160}
                   className="w-auto h-8 sm:h-9"
                 />
-                {/* <span className="text-sm font-semibold tracking-wide">
-                  Orbit
-                </span> */}
               </div>
               <p className="text-xs text-orbit-muted">
                 Turn rough ideas and goals into clear, realistic plans you can

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { GeneratePlanButton } from "./GeneratePlanButton";
+import { PlanStepFlow, type FlowStep } from "./PlanStepFlow";
 
 type PageProps = {
   params: { id: string };
@@ -28,14 +29,6 @@ type GeneratedPlan = {
     workaround: string;
   }[];
   notes: string;
-};
-
-type FlowStep = {
-  id: string;
-  title: string;
-  subtitle?: string;
-  badge?: string;
-  details?: string[];
 };
 
 function planToSteps(plan: GeneratedPlan): FlowStep[] {
@@ -186,6 +179,9 @@ async function updatePlan(formData: FormData) {
 export default async function PlanPage({ params }: PageProps) {
   const plan = await prisma.plan.findUnique({
     where: { id: params.id },
+    include: {
+      stepProgresses: true,
+    },
   });
 
   if (!plan) notFound();
@@ -194,6 +190,11 @@ export default async function PlanPage({ params }: PageProps) {
   const generatedPlan = (plan.outputJson ?? null) as GeneratedPlan | null;
   const steps = generatedPlan ? planToSteps(generatedPlan) : [];
   const identity = getPlanIdentity(plan.goalInput, plan.intensity);
+
+  const initialCompletedIndices =
+    plan.stepProgresses
+      ?.filter((p) => p.completedAt !== null)
+      .map((p) => p.stepIndex) ?? [];
 
   const totalWeeksFromAI =
     generatedPlan?.weeklyRhythm?.[generatedPlan.weeklyRhythm.length - 1]
@@ -395,9 +396,7 @@ export default async function PlanPage({ params }: PageProps) {
           {/* Animated timeline bar */}
           <div className="space-y-2">
             <div className="relative h-2 w-full rounded-full bg-orbit-border/40 overflow-hidden">
-              {/* moving glow */}
               <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,108,171,0.4),transparent)] animate-[pulse_2s_ease-in-out_infinite]" />
-              {/* milestones */}
               {generatedPlan.milestones?.map((m, idx) => {
                 const clampedWeek = Math.max(
                   1,
@@ -428,69 +427,12 @@ export default async function PlanPage({ params }: PageProps) {
             </p>
           )}
 
-          {/* Step Flow */}
-          <div className="flex flex-col gap-8">
-            {steps.map((step, index) => (
-              <div key={step.id} className="flex flex-col items-center">
-                {/* Block */}
-                <div
-                  className="
-                    w-full rounded-3xl border border-orbit-border/80
-                    bg-[radial-gradient(circle_at_top,#252133,#050308_55%)]
-                    px-6 py-6
-                    shadow-[0_0_0_1px_rgba(255,255,255,0.02)]
-                    hover:shadow-[0_0_50px_rgba(255,108,171,0.35)]
-                    hover:border-orbit-pink/70
-                    transition
-                  "
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="space-y-1">
-                      <p className="text-xs uppercase tracking-wide text-orbit-muted/70">
-                        Step {index + 1}
-                      </p>
-                      <h3 className="text-lg font-semibold">{step.title}</h3>
-                    </div>
-                    {step.badge && (
-                      <span className="text-xs sm:text-sm border border-orbit-border/70 rounded-full px-3 py-1 bg-black/40 text-orbit-muted">
-                        {step.badge}
-                      </span>
-                    )}
-                  </div>
-
-                  {step.subtitle && (
-                    <p className="text-sm sm:text-base text-orbit-muted mb-3">
-                      {step.subtitle}
-                    </p>
-                  )}
-
-                  {step.details && (
-                    <ul className="space-y-2 text-sm sm:text-base text-orbit-muted">
-                      {step.details.map((d, i) => (
-                        <li key={i} className="flex gap-3">
-                          <span className="mt-2 h-2 w-2 rounded-full bg-orbit-pink/80" />
-                          {d}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-
-                {/* Connector line (straight, animated) */}
-                {index < steps.length - 1 && (
-                  <div className="flex justify-center mt-4 mb-2">
-                    <div
-                      className="
-                        h-10 w-px rounded-full
-                        bg-gradient-to-b from-orbit-pink/80 via-orbit-border/60 to-transparent
-                        animate-pulse
-                      "
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+          {/* Step Flow with progress tracking */}
+          <PlanStepFlow
+            planId={plan.id}
+            steps={steps}
+            initialCompletedIndices={initialCompletedIndices}
+          />
 
           {/* Obstacles & Notes */}
           {(generatedPlan.obstaclesAndSafeties?.length ?? 0) > 0 ||

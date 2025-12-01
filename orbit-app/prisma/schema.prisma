@@ -22,5 +22,19 @@ model Plan {
   outputJson     Json?                     // full AI-generated plan
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  // NEW:
+  stepProgresses PlanStepProgress[]
+}
+
+model PlanStepProgress {
+  id        String   @id @default(cuid())
+  plan      Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  planId    String
+  stepIndex Int
+  completedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([planId, stepIndex])
 }
 

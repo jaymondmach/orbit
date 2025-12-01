@@ -11,30 +11,56 @@ datasource db {
   // no url here in Prisma 7 – it lives in prisma.config.ts
 }
 
+model User {
+  id          String   @id @default(cuid())
+  stackUserId String   @unique
+  email       String   @unique
+  name        String?
+  imageUrl    String?        // avatar URL (Orbit-controlled or from Stack)
+
+  // Profile fields
+  username    String?  @unique
+  headline    String?  // short tagline under their name
+  bio         String?  // longer free text
+  timezone    String?  // e.g. "America/Vancouver"
+
+  // Planning preferences
+  defaultIntensity String? // "gentle" | "steady" | "intense"
+  defaultWeeks     Int?    // e.g. 12
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  plans       Plan[]
+}
+
 model Plan {
   id             String   @id @default(cuid())
   title          String
   goalInput      String
   timeframeWeeks Int
   intensity      String
+
+  // keep this optional for now so existing NULL rows don't break migrations
   userId         String?
+  user           User?    @relation(fields: [userId], references: [id])
+
   status         String   @default("draft") // "draft" | "generating" | "ready" | "error"
   outputJson     Json?                     // full AI-generated plan
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-  // NEW:
+
   stepProgresses PlanStepProgress[]
 }
 
 model PlanStepProgress {
-  id        String   @id @default(cuid())
-  plan      Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
-  planId    String
-  stepIndex Int
+  id          String   @id @default(cuid())
+  plan        Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  planId      String
+  stepIndex   Int
   completedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@unique([planId, stepIndex])
 }
-

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { stackServerApp } from "@/stack/server";
+import { getOrCreateCurrentUser } from "@/lib/getOrCreateCurrentUser";
 
 type PageProps = {
   searchParams?: {
@@ -14,7 +14,7 @@ type PageProps = {
 async function createPlan(formData: FormData) {
   "use server";
 
-  const user = await stackServerApp.getUser({ or: "redirect" });
+  const { dbUser } = await getOrCreateCurrentUser();
 
   const rawGoal = (formData.get("goalInput") as string | null) ?? "";
   const goalInput =
@@ -42,26 +42,24 @@ async function createPlan(formData: FormData) {
       goalInput,
       timeframeWeeks,
       intensity,
-      userId: user.id, // ⬅️ tie to logged-in user
+      userId: dbUser.id,
       status: "draft",
     },
   });
 
-  // Revalidate the list page (useful if you stay on /app/plans elsewhere)
   revalidatePath("/app/plans");
-
-  // Then jump straight into the new plan
   redirect(`/app/plans/${plan.id}`);
 }
 
 export default async function PlansPage({ searchParams }: PageProps) {
-  const user = await stackServerApp.getUser({ or: "redirect" });
+  const { authUser, dbUser } = await getOrCreateCurrentUser();
+  const user = authUser as any;
 
   const q = (searchParams?.q ?? "").trim();
 
   const plans = await prisma.plan.findMany({
     where: {
-      userId: user.id, // ⬅️ only this user's plans
+      userId: dbUser.id,
       ...(q
         ? {
             OR: [
@@ -73,6 +71,9 @@ export default async function PlansPage({ searchParams }: PageProps) {
     },
     orderBy: { createdAt: "desc" },
   });
+
+  const defaultWeeks = dbUser.defaultWeeks ?? 12;
+  const defaultIntensity = dbUser.defaultIntensity ?? "steady";
 
   return (
     <div className="space-y-8">
@@ -128,7 +129,7 @@ export default async function PlansPage({ searchParams }: PageProps) {
             <select
               id="timeframeWeeks"
               name="timeframeWeeks"
-              defaultValue="12"
+              defaultValue={String(defaultWeeks)}
               className="w-full rounded-xl border border-orbit-border bg-black/60 px-4 py-3 text-sm sm:text-base outline-none focus:border-orbit-pink/70"
             >
               <option value="4">About 1 month</option>
@@ -149,7 +150,7 @@ export default async function PlansPage({ searchParams }: PageProps) {
             <select
               id="intensity"
               name="intensity"
-              defaultValue="steady"
+              defaultValue={defaultIntensity}
               className="w-full rounded-xl border border-orbit-border bg-black/60 px-4 py-3 text-sm sm:text-base outline-none focus:border-orbit-pink/70"
             >
               <option value="gentle">Gentle – low pressure</option>

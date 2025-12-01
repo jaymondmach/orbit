@@ -50,7 +50,8 @@ export function PlanStepFlow({
     toggleLocal(stepIndex);
 
     try {
-      await fetch("/api/plans/progress", {
+      await fetch("/api/plan-step-progress", {
+        // ⬆️ NOTE: updated to new API route that writes to PlanStepProgress
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

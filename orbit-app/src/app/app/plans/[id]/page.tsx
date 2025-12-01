@@ -1,11 +1,20 @@
-// src/app/app/plans/new/page.tsx
-import { redirect } from "next/navigation";
+// src/app/app/plans/[id]/page.tsx
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-async function createPlan(formData: FormData) {
+type PageProps = {
+  params: { id: string };
+};
+
+async function updatePlan(formData: FormData) {
   "use server";
+
+  const id = (formData.get("planId") as string | null) ?? null;
+  if (!id) {
+    throw new Error("Missing plan id");
+  }
 
   const rawTitle = (formData.get("title") as string | null) ?? "";
   const rawGoal = (formData.get("goalInput") as string | null) ?? "";
@@ -14,6 +23,7 @@ async function createPlan(formData: FormData) {
 
   const goalInput = rawGoal.trim();
   if (!goalInput) {
+    // In a real app you’d surface this as a form error; for now, just bail.
     throw new Error("Goal description is required.");
   }
 
@@ -22,9 +32,11 @@ async function createPlan(formData: FormData) {
       ? rawTitle.trim()
       : goalInput.slice(0, 60) + (goalInput.length > 60 ? "…" : "");
 
-  const timeframeWeeks = Number.parseInt(rawTimeframe || "12", 10);
-  const safeTimeframe =
-    Number.isNaN(timeframeWeeks) || timeframeWeeks <= 0 ? 12 : timeframeWeeks;
+  const timeframeWeeksParsed = Number.parseInt(rawTimeframe || "12", 10);
+  const timeframeWeeks =
+    Number.isNaN(timeframeWeeksParsed) || timeframeWeeksParsed <= 0
+      ? 12
+      : timeframeWeeksParsed;
 
   const intensity =
     rawIntensity === "gentle" ||
@@ -33,47 +45,72 @@ async function createPlan(formData: FormData) {
       ? rawIntensity
       : "steady";
 
-  const newPlan = await prisma.plan.create({
+  await prisma.plan.update({
+    where: { id },
     data: {
       title,
       goalInput,
-      timeframeWeeks: safeTimeframe,
+      timeframeWeeks,
       intensity,
-      status: "draft",
     },
   });
 
-  // Go straight to the plan detail page
-  redirect(`/app/plans/${newPlan.id}`);
+  // Refresh both the detail page and the list page
+  revalidatePath(`/app/plans/${id}`);
+  revalidatePath("/app/plans");
 }
 
-export default function NewPlanPage() {
+export default async function PlanPage({ params }: PageProps) {
+  const plan = await prisma.plan.findUnique({
+    where: { id: params.id },
+  });
+
+  if (!plan) {
+    notFound();
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="space-y-1">
           <h1 className="text-xl sm:text-2xl font-semibold">
-            Start a new plan
+            Edit plan details
           </h1>
           <p className="text-xs sm:text-sm text-orbit-muted max-w-xl">
-            Tell Orbit what you want to work on. Keep it casual—write like you
-            would text a friend. Orbit will turn this into a structured plan
-            later.
+            Update the title, description, timeframe, or intensity. Orbit will
+            use these details when generating or refining your plan.
           </p>
+
+          <div className="flex flex-wrap items-center gap-2 text-[11px] text-orbit-muted">
+            <span className="inline-flex items-center rounded-full border border-orbit-border px-2.5 py-0.5">
+              Created:{" "}
+              {plan.createdAt.toLocaleDateString("en-CA", {
+                year: "numeric",
+                month: "short",
+                day: "2-digit",
+              })}
+            </span>
+            <span className="inline-flex items-center rounded-full border border-orbit-border px-2.5 py-0.5">
+              Status: {plan.status}
+            </span>
+          </div>
         </div>
 
         <Link
           href="/app/plans"
-          className="text-xs sm:text-sm text-orbit-muted hover:text-white underline underline-offset-4"
+          className="text-[11px] sm:text-xs text-orbit-muted hover:text-white underline underline-offset-4"
         >
-          ← Back to your plans
+          ← Back to all plans
         </Link>
       </div>
 
-      {/* Form card */}
-      <form action={createPlan} className="orbit-card p-5 sm:p-6 space-y-5">
-        {/* Title (optional) */}
+      {/* Edit form */}
+      <form action={updatePlan} className="orbit-card p-5 sm:p-6 space-y-5">
+        {/* hidden id */}
+        <input type="hidden" name="planId" value={plan.id} />
+
+        {/* Title */}
         <div className="space-y-1.5">
           <label
             htmlFor="title"
@@ -88,12 +125,13 @@ export default function NewPlanPage() {
             id="title"
             name="title"
             type="text"
+            defaultValue={plan.title}
             placeholder="e.g. Get fitter in 12 weeks, Save $5k this year"
             className="w-full rounded-xl border border-orbit-border bg-black/60 px-3 py-2 text-sm outline-none focus:border-orbit-pink/70"
           />
           <p className="text-[11px] text-orbit-muted">
-            If you leave this blank, Orbit will create a title from your goal
-            description.
+            If you leave this blank, Orbit will use your goal description to
+            create a short title.
           </p>
         </div>
 
@@ -110,11 +148,7 @@ export default function NewPlanPage() {
             name="goalInput"
             required
             rows={5}
-            placeholder={`Write like you normally would. For example:
-
-"I want to feel better in my body, lose a bit of weight, and not be tired all the time over the next 3–4 months."
-
-"I want to save around $5,000 this year without feeling miserable or cutting out everything fun."`}
+            defaultValue={plan.goalInput}
             className="w-full rounded-xl border border-orbit-border bg-black/60 px-3 py-2 text-sm outline-none focus:border-orbit-pink/70 resize-none"
           />
         </div>
@@ -134,12 +168,12 @@ export default function NewPlanPage() {
               <select
                 id="timeframeWeeks"
                 name="timeframeWeeks"
-                defaultValue="12"
+                defaultValue={String(plan.timeframeWeeks)}
                 className="
-          w-full rounded-xl border border-orbit-border bg-black/60
-          px-3 py-2 text-sm outline-none focus:border-orbit-pink/70
-          appearance-none pr-10
-        "
+                  w-full rounded-xl border border-orbit-border bg-black/60
+                  px-3 py-2 text-sm outline-none focus:border-orbit-pink/70
+                  appearance-none pr-10
+                "
               >
                 <option value="4">About 1 month</option>
                 <option value="8">About 2 months</option>
@@ -167,8 +201,8 @@ export default function NewPlanPage() {
             </div>
 
             <p className="text-[11px] text-orbit-muted">
-              This doesn&apos;t have to be perfect—Orbit just uses it to size
-              the plan.
+              Orbit just uses this to size the overall plan. It doesn&apos;t
+              have to be exact.
             </p>
           </div>
 
@@ -185,12 +219,12 @@ export default function NewPlanPage() {
               <select
                 id="intensity"
                 name="intensity"
-                defaultValue="steady"
+                defaultValue={plan.intensity}
                 className="
-          w-full rounded-xl border border-orbit-border bg-black/60
-          px-3 py-2 text-sm outline-none focus:border-orbit-pink/70
-          appearance-none pr-10
-        "
+                  w-full rounded-xl border border-orbit-border bg-black/60
+                  px-3 py-2 text-sm outline-none focus:border-orbit-pink/70
+                  appearance-none pr-10
+                "
               >
                 <option value="gentle">Gentle – low pressure</option>
                 <option value="steady">Steady – realistic pace</option>
@@ -216,8 +250,8 @@ export default function NewPlanPage() {
             </div>
 
             <p className="text-[11px] text-orbit-muted">
-              You can change this later; it just tells Orbit how aggressive to
-              be with actions.
+              You can switch this later if you want Orbit to go easier or
+              harder.
             </p>
           </div>
         </div>
@@ -225,8 +259,8 @@ export default function NewPlanPage() {
         {/* Actions */}
         <div className="flex items-center justify-between gap-3 pt-2">
           <p className="text-[11px] text-orbit-muted max-w-xs">
-            This first version just saves your plan details. We&apos;ll hook it
-            up to AI so Orbit can generate the full roadmap next.
+            Changes are saved to your database, so you can come back to this
+            plan any time and keep refining it.
           </p>
 
           <div className="flex gap-2">
@@ -234,13 +268,13 @@ export default function NewPlanPage() {
               href="/app/plans"
               className="inline-flex items-center justify-center rounded-full border border-orbit-border px-4 py-2 text-xs sm:text-sm text-orbit-muted hover:border-white/40 hover:text-white transition"
             >
-              Cancel
+              Back to all plans
             </Link>
             <button
               type="submit"
               className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#ff6cab,#7366ff)] px-5 py-2 text-xs sm:text-sm font-semibold text-black hover:opacity-90 transition"
             >
-              Save plan
+              Save changes
             </button>
           </div>
         </div>

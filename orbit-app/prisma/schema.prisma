@@ -18,6 +18,9 @@ model Plan {
   timeframeWeeks Int
   intensity      String
   userId         String?
+  status         String   @default("draft") // "draft" | "generating" | "ready" | "error"
+  outputJson     Json?                     // full AI-generated plan
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
+

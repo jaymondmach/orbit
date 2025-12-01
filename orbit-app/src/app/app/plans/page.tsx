@@ -46,7 +46,7 @@ export default async function PlansPage() {
                     Plan
                   </p>
                   <h2 className="text-sm sm:text-base font-semibold">
-                    {plan.title}
+                    {plan.title || "Untitled plan"}
                   </h2>
                 </div>
                 <span className="rounded-full border border-orbit-border px-2.5 py-1 text-[10px] text-orbit-muted">
@@ -68,7 +68,7 @@ export default async function PlansPage() {
                   })}
                 </span>
                 <Link
-                  href="#"
+                  href={`/app/plans/${plan.id}`}
                   className="hover:text-white underline underline-offset-2"
                 >
                   View details
@@ -84,8 +84,8 @@ export default async function PlansPage() {
           </h2>
           <p className="text-xs sm:text-sm text-orbit-muted max-w-md">
             When you create a plan, Orbit will turn your goal and timeframe into
-            milestones, weekly actions, and simple starting steps. For now,
-            everything here is just waiting for your first idea.
+            something structured you can follow. For now, everything here is
+            just waiting for your first idea.
           </p>
           <div>
             <Link
@@ -99,8 +99,8 @@ export default async function PlansPage() {
       )}
 
       <p className="text-[11px] text-orbit-muted">
-        Next up: we&apos;ll add the &quot;New plan&quot; flow and hook it to AI
-        so each plan is generated for you.
+        Orbit is an early prototype. Plans you create here are saved in your
+        database so you can revisit and edit them.
       </p>
     </div>
   );

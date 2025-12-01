@@ -1,8 +1,10 @@
+// src/app/page.tsx
 "use client";
 
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect } from "react";
+import { useUser, useStackApp } from "@stackframe/stack";
 
 function scrollToSection(id: string) {
   if (typeof document === "undefined") return;
@@ -14,6 +16,8 @@ function scrollToSection(id: string) {
 
 export default function Home() {
   const year = new Date().getFullYear();
+  const user = useUser();
+  const app = useStackApp();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -101,16 +105,35 @@ export default function Home() {
             </button>
           </nav>
 
-          {/* Right buttons */}
+          {/* Right buttons – auth-aware */}
           <div className="flex items-center gap-3">
-            <button className="hidden sm:inline-flex items-center justify-center rounded-full border border-orbit-border px-4 py-2 text-sm text-orbit-muted hover:border-white/40 hover:text-white transition">
-              Log in
-            </button>
-            <Link href="/app/plans">
-              <button className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#ff6cab,#7366ff)] px-5 py-2 text-sm font-semibold text-black hover:opacity-90 transition">
-                Launch Orbit
-              </button>
-            </Link>
+            {user ? (
+              <>
+                <span className="hidden sm:inline text-xs text-orbit-muted">
+                  {user.displayName ?? user.primaryEmail ?? "Logged in"}
+                </span>
+                <Link href="/app/plans">
+                  <button className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#ff6cab,#7366ff)] px-5 py-2 text-sm font-semibold text-black hover:opacity-90 transition">
+                    Open my plans
+                  </button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <button
+                  className="hidden sm:inline-flex items-center justify-center rounded-full border border-orbit-border px-4 py-2 text-sm text-orbit-muted hover:border-white/40 hover:text-white transition"
+                  onClick={() => app.redirectToSignIn()}
+                >
+                  Log in
+                </button>
+                <button
+                  className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#ff6cab,#7366ff)] px-5 py-2 text-sm font-semibold text-black hover:opacity-90 transition"
+                  onClick={() => app.redirectToSignUp()}
+                >
+                  Get started
+                </button>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -148,12 +171,33 @@ export default function Home() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <button className="inline-flex items-center justify-center rounded-full bg-orbit-accent px-5 py-2.5 text-sm font-semibold text-black shadow-orbit-card hover:opacity-90 transition bg-orbit-accent">
-                Start a new plan
-              </button>
-              <button className="inline-flex items-center justify-center rounded-full border border-orbit-border px-4 py-2 text-sm font-medium text-orbit-muted hover:border-white/40 hover:text-white transition">
-                View example plan
-              </button>
+              {user ? (
+                <>
+                  <Link href="/app/plans">
+                    <button className="inline-flex items-center justify-center rounded-full bg-orbit-accent px-5 py-2.5 text-sm font-semibold text-black shadow-orbit-card hover:opacity-90 transition">
+                      Start a new plan
+                    </button>
+                  </Link>
+                  <button className="inline-flex items-center justify-center rounded-full border border-orbit-border px-4 py-2 text-sm font-medium text-orbit-muted hover:border-white/40 hover:text-white transition">
+                    View example plan
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    className="inline-flex items-center justify-center rounded-full bg-orbit-accent px-5 py-2.5 text-sm font-semibold text-black shadow-orbit-card hover:opacity-90 transition"
+                    onClick={() => app.redirectToSignUp()}
+                  >
+                    Get started free
+                  </button>
+                  <button
+                    className="inline-flex items-center justify-center rounded-full border border-orbit-border px-4 py-2 text-sm font-medium text-orbit-muted hover:border-white/40 hover:text-white transition"
+                    onClick={() => app.redirectToSignIn()}
+                  >
+                    Log in
+                  </button>
+                </>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-4 text-[11px] text-orbit-muted">
@@ -167,7 +211,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right - example plan card */}
+          {/* Right - example plan card (realistic Option A) */}
           <div className="flex-1 w-full lg:max-w-md">
             <div className="orbit-card relative p-4 sm:p-5 lg:p-6" data-animate>
               {/* small halo */}
@@ -175,67 +219,96 @@ export default function Home() {
 
               <div className="relative space-y-4">
                 {/* Header */}
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
                     <p className="text-[10px] uppercase tracking-[0.2em] text-orbit-muted">
-                      Plan preview
+                      Real plan example
                     </p>
                     <h2 className="text-sm font-semibold">
-                      Goal: Get fitter in 12 weeks
+                      Get fitter in 8 weeks
                     </h2>
                     <p className="text-2xs text-orbit-muted">
-                      Input: &quot;I want to feel healthier, lose a bit of
-                      weight, and have more energy by summer.&quot;
+                      Input: &quot;I want to feel healthier, gain some strength,
+                      and fix my routine.&quot;
                     </p>
                   </div>
-                  <span className="rounded-full border border-orbit-border px-3 py-1 text-2xs text-orbit-muted">
-                    Status:{" "}
-                    <span className="text-emerald-400 font-medium">
-                      Generated
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="rounded-full border border-orbit-border px-3 py-1 text-2xs text-orbit-muted">
+                      Status:{" "}
+                      <span className="text-emerald-400 font-medium">
+                        Ready
+                      </span>
                     </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-orbit-border px-2 py-0.5 text-[10px] text-orbit-muted">
+                      <span className="h-3 w-3 rounded-full bg-emerald-400/80" />
+                      Health · Steady · 8 weeks
+                    </span>
+                  </div>
+                </div>
+
+                {/* Meta chips */}
+                <div className="flex flex-wrap gap-2 text-[10px] text-orbit-muted">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-orbit-border px-2 py-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-orbit-pink" />
+                    Weekly rhythm: 3 workouts · 2 walks
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-orbit-border px-2 py-1">
+                    Milestones: 3 phases
                   </span>
                 </div>
 
                 {/* Sections */}
                 <div className="space-y-3 text-[11px] text-orbit-muted">
-                  {/* Milestones */}
+                  {/* Milestones vertical timeline */}
                   <div className="rounded-xl border border-orbit-border bg-orbit-surfaceMuted/70 p-3 space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-2xs uppercase tracking-[0.18em]">
-                        Big milestones
+                        Milestones
                       </span>
                       <span className="text-2xs text-orbit-muted">
-                        3 phases
+                        Weeks 1–8
                       </span>
                     </div>
-                    <ul className="mt-1 space-y-0.5">
-                      <li>• Week 1–4: Build basic routine &amp; consistency</li>
+                    <ol className="mt-1 space-y-1">
                       <li>
-                        • Week 5–8: Increase intensity &amp; track progress
+                        <span className="font-medium text-orbit-text">
+                          Week 1–2:
+                        </span>{" "}
+                        Build a simple routine you can stick to.
                       </li>
-                      <li>• Week 9–12: Lock in habits &amp; maintain</li>
-                    </ul>
-                  </div>
-
-                  {/* Rhythm */}
-                  <div className="rounded-xl border border-orbit-border bg-orbit-surfaceMuted/70 p-3 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-2xs uppercase tracking-[0.18em]">
-                        Weekly rhythm
-                      </span>
-                      <span className="text-2xs">Simple routine</span>
-                    </div>
-                    <ol className="mt-1 space-y-0.5">
-                      <li>1. 3x short workouts you can actually stick to</li>
-                      <li>2. 2x light movement days (walks, stretching)</li>
                       <li>
-                        3. 1x weekly check-in to review energy &amp; habits
+                        <span className="font-medium text-orbit-text">
+                          Week 3–5:
+                        </span>{" "}
+                        Gradually increase intensity and track energy.
                       </li>
-                      <li>4. 1x flexible rest day with no guilt</li>
+                      <li>
+                        <span className="font-medium text-orbit-text">
+                          Week 6–8:
+                        </span>{" "}
+                        Lock in habits and prepare a sustainable
+                        &quot;maintenance&quot; week.
+                      </li>
                     </ol>
                   </div>
 
-                  {/* Actions */}
+                  {/* Weekly rhythm snapshot */}
+                  <div className="rounded-xl border border-orbit-border bg-orbit-surfaceMuted/70 p-3 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-2xs uppercase tracking-[0.18em]">
+                        Weekly rhythm (steady)
+                      </span>
+                      <span className="text-2xs">Realistic schedule</span>
+                    </div>
+                    <ul className="mt-1 space-y-0.5">
+                      <li>• 3× 25–35 min strength / mixed workouts</li>
+                      <li>• 2× light movement days (walks, stretching)</li>
+                      <li>• 1× weekly check-in (energy, sleep, mood)</li>
+                      <li>• 1× full rest / flexible day</li>
+                    </ul>
+                  </div>
+
+                  {/* Starting steps */}
                   <div className="rounded-xl border border-orbit-border bg-orbit-surfaceMuted/70 p-3 space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-2xs uppercase tracking-[0.18em]">
@@ -244,10 +317,10 @@ export default function Home() {
                       <span className="text-2xs">4 quick wins</span>
                     </div>
                     <ul className="mt-1 space-y-0.5">
-                      <li>▢ Pick your workout days for this week</li>
-                      <li>▢ Set a 10–15 minute walk for tomorrow</li>
-                      <li>▢ Choose 1 simple food habit to improve</li>
-                      <li>▢ Add a weekly reminder to check in with Orbit</li>
+                      <li>▢ Choose 3 workout days for this week.</li>
+                      <li>▢ Set a 15–20 min walk for tomorrow.</li>
+                      <li>▢ Pick 1 simple food habit to improve.</li>
+                      <li>▢ Add a weekly check-in reminder with Orbit.</li>
                     </ul>
                   </div>
                 </div>
@@ -315,7 +388,7 @@ export default function Home() {
         {/* ---- line break ---- */}
         <div className="h-px w-full bg-orbit-border/60" />
 
-        {/* How it works (also part of Product) */}
+        {/* How Orbit works */}
         <section
           className="orbit-section space-y-5 p-4 sm:p-6 rounded-3xl"
           data-animate
@@ -358,6 +431,127 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Real example plan section – under "How Orbit works" */}
+        <section
+          id="example-plan"
+          className="orbit-section space-y-5 p-4 sm:p-6 rounded-3xl"
+          data-animate
+        >
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-lg sm:text-xl font-semibold">
+              Real example plan: Get fitter in 8 weeks
+            </h2>
+            <p className="hidden sm:block text-2xs text-orbit-muted">
+              A condensed snapshot of what Orbit generates from a simple input.
+            </p>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-3">
+            {/* Input & context */}
+            <div className="orbit-card p-4 sm:p-5 space-y-3">
+              <p className="text-2xs uppercase tracking-[0.18em] text-orbit-muted">
+                User input
+              </p>
+              <p className="text-xs text-orbit-muted leading-relaxed">
+                <span className="italic">
+                  &quot;I want to feel healthier, gain some strength, and fix my
+                  routine over the next couple of months. I work full-time so I
+                  can&apos;t do super intense stuff every day.&quot;
+                </span>
+              </p>
+
+              <div className="space-y-2 pt-3">
+                <p className="text-2xs uppercase tracking-[0.18em] text-orbit-muted">
+                  Plan identity
+                </p>
+                <div className="flex flex-wrap gap-2 text-[11px] text-orbit-muted">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-orbit-border px-2 py-1">
+                    🫀 Health
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-orbit-border px-2 py-1">
+                    Steady intensity
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-orbit-border px-2 py-1">
+                    8-week timeframe
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Milestones */}
+            <div className="orbit-card p-4 sm:p-5 space-y-3">
+              <p className="text-2xs uppercase tracking-[0.18em] text-orbit-muted">
+                Orbit&apos;s milestones
+              </p>
+              <ol className="text-xs text-orbit-muted space-y-2">
+                <li>
+                  <span className="font-semibold text-orbit-text">
+                    1. Weeks 1–2: Show up consistently
+                  </span>
+                  <p className="mt-0.5">
+                    Build a simple routine (3 short workouts, 2 walks) and focus
+                    on not overdoing it.
+                  </p>
+                </li>
+                <li>
+                  <span className="font-semibold text-orbit-text">
+                    2. Weeks 3–5: Increase difficulty slightly
+                  </span>
+                  <p className="mt-0.5">
+                    Add a bit more weight or time, track sleep and energy, and
+                    tighten up 1–2 food habits.
+                  </p>
+                </li>
+                <li>
+                  <span className="font-semibold text-orbit-text">
+                    3. Weeks 6–8: Lock in your &quot;default&quot; week
+                  </span>
+                  <p className="mt-0.5">
+                    Decide on a repeatable &quot;good enough&quot; week you can
+                    maintain after the plan ends.
+                  </p>
+                </li>
+              </ol>
+            </div>
+
+            {/* Weekly rhythm + starting steps */}
+            <div className="orbit-card p-4 sm:p-5 space-y-3">
+              <p className="text-2xs uppercase tracking-[0.18em] text-orbit-muted">
+                Weekly rhythm &amp; starting steps
+              </p>
+
+              <div className="space-y-2 text-xs text-orbit-muted">
+                <p className="font-semibold text-orbit-text">
+                  Weekly rhythm (steady):
+                </p>
+                <ul className="list-disc pl-4 space-y-0.5">
+                  <li>3× 25–35 min workouts (strength / mixed)</li>
+                  <li>2× light movement days (walk or stretching)</li>
+                  <li>1× check-in (energy, mood, sleep, notes)</li>
+                  <li>1× rest day with zero guilt</li>
+                </ul>
+              </div>
+
+              <div className="space-y-2 pt-2 text-xs text-orbit-muted">
+                <p className="font-semibold text-orbit-text">
+                  First 4 actions Orbit suggests:
+                </p>
+                <ol className="list-decimal pl-5 space-y-0.5">
+                  <li>Choose which 3 days this week are workout days.</li>
+                  <li>Schedule one 15–20 min walk in your calendar.</li>
+                  <li>
+                    Pick one easy food habit (e.g., add a protein to lunch).
+                  </li>
+                  <li>
+                    Set a weekly reminder called &quot;Check in with
+                    Orbit&quot;.
+                  </li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ---- line break ---- */}
         <div className="h-px w-full bg-orbit-border/60" />
 
@@ -381,22 +575,26 @@ export default function Home() {
               {
                 label: "Health",
                 title: "Get fitter without going extreme",
-                prompt: `"I want to feel better in my body, lose a bit of weight, and not be tired all the time over the next 3–4 months."`,
+                prompt:
+                  '"I want to feel better in my body, lose a bit of weight, and not be tired all the time over the next 3–4 months."',
               },
               {
                 label: "Money",
                 title: "Save money without hating life",
-                prompt: `"I want to save $5,000 in a year while still being able to go out sometimes and not feel super restricted."`,
+                prompt:
+                  '"I want to save $5,000 in a year while still being able to go out sometimes and not feel super restricted."',
               },
               {
                 label: "Career",
                 title: "Change jobs or level up",
-                prompt: `"I want to switch from my current job into a different field, but I don't know what steps to take or where to start."`,
+                prompt:
+                  '"I want to switch from my current job into a different field, but I don\'t know what steps to take or where to start."',
               },
               {
                 label: "Projects & habits",
                 title: "Finish the thing you keep putting off",
-                prompt: `"I want to finally finish my side project and build a simple routine around it instead of random bursts."`,
+                prompt:
+                  '"I want to finally finish my side project and build a simple routine around it instead of random bursts."',
               },
             ].map((item) => (
               <div
@@ -419,7 +617,7 @@ export default function Home() {
         {/* ---- line break ---- */}
         <div className="h-px w-full bg-orbit-border/60" />
 
-        {/* Built for real life — roadmap-ish section */}
+        {/* Built for real life */}
         <section
           id="roadmap"
           className="orbit-section space-y-5 p-4 sm:p-6 rounded-3xl"

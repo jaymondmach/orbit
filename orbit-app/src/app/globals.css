@@ -157,8 +157,8 @@ button:active {
   opacity: 0;
   transform: translateY(16px);
   filter: blur(4px);
-  transition: opacity 480ms ease-out, transform 480ms ease-out,
-    filter 480ms ease-out;
+  transition: opacity 320ms ease-out, transform 320ms ease-out,
+    filter 320ms ease-out;
 }
 
 .fade-in-visible {

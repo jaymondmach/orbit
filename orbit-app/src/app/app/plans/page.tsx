@@ -1,107 +1,225 @@
+// src/app/app/plans/page.tsx
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import type { Plan } from "@prisma/client";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { stackServerApp } from "@/stack/server";
 
-export default async function PlansPage() {
-  const plans: Plan[] = await prisma.plan.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 20,
+type PageProps = {
+  searchParams?: {
+    q?: string;
+  };
+};
+
+async function createPlan(formData: FormData) {
+  "use server";
+
+  const user = await stackServerApp.getUser({ or: "redirect" });
+
+  const rawGoal = (formData.get("goalInput") as string | null) ?? "";
+  const goalInput =
+    rawGoal.trim() || "I want to make progress on an important goal.";
+
+  const rawTimeframe =
+    (formData.get("timeframeWeeks") as string | null) ?? "12";
+  const timeframeWeeks = Number.parseInt(rawTimeframe || "12", 10) || 12;
+
+  const rawIntensity = (formData.get("intensity") as string | null) ?? "steady";
+  const intensity =
+    rawIntensity === "gentle" ||
+    rawIntensity === "steady" ||
+    rawIntensity === "intense"
+      ? rawIntensity
+      : "steady";
+
+  const title =
+    (formData.get("title") as string | null)?.trim() ||
+    goalInput.slice(0, 60) + (goalInput.length > 60 ? "…" : "");
+
+  const plan = await prisma.plan.create({
+    data: {
+      title,
+      goalInput,
+      timeframeWeeks,
+      intensity,
+      userId: user.id, // ⬅️ tie to logged-in user
+      status: "draft",
+    },
   });
 
-  const hasPlans = plans.length > 0;
+  // Revalidate the list page (useful if you stay on /app/plans elsewhere)
+  revalidatePath("/app/plans");
+
+  // Then jump straight into the new plan
+  redirect(`/app/plans/${plan.id}`);
+}
+
+export default async function PlansPage({ searchParams }: PageProps) {
+  const user = await stackServerApp.getUser({ or: "redirect" });
+
+  const q = (searchParams?.q ?? "").trim();
+
+  const plans = await prisma.plan.findMany({
+    where: {
+      userId: user.id, // ⬅️ only this user's plans
+      ...(q
+        ? {
+            OR: [
+              { title: { contains: q, mode: "insensitive" } },
+              { goalInput: { contains: q, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-xl sm:text-2xl font-semibold">Your plans</h1>
-          <p className="text-xs sm:text-sm text-orbit-muted max-w-md">
-            This is where your Orbit plans live. Create a new one whenever you
-            have a goal you want a clear path for.
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-2">
+          <h1 className="text-2xl sm:text-3xl font-semibold">Your plans</h1>
+          <p className="text-sm sm:text-base text-orbit-muted max-w-xl">
+            Each plan is tied to your Orbit account. Start with a rough goal and
+            let Orbit turn it into a step-by-step blueprint.
           </p>
         </div>
 
-        <div className="flex gap-2">
-          <button className="rounded-full border border-orbit-border px-4 py-2 text-xs sm:text-sm text-orbit-muted hover:border-white/40 hover:text-white transition">
-            Import example
-          </button>
-          <Link
-            href="/app/plans/new"
-            className="rounded-full bg-[linear-gradient(135deg,#ff6cab,#7366ff)] px-4 py-2 text-xs sm:text-sm font-semibold text-black hover:opacity-90 transition inline-flex items-center justify-center"
-          >
-            New plan
-          </Link>
+        <div className="text-xs sm:text-sm text-orbit-muted">
+          Signed in as{" "}
+          <span className="font-medium">
+            {user.displayName ?? user.primaryEmail ?? "Orbit user"}
+          </span>
         </div>
       </div>
 
-      {/* If there are plans, show them, otherwise show empty state */}
-      {hasPlans ? (
-        <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
-          {plans.map((plan) => (
-            <div key={plan.id} className="orbit-card p-4 sm:p-5 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <div className="space-y-1">
-                  <p className="text-[11px] uppercase tracking-[0.16em] text-orbit-muted">
-                    Plan
-                  </p>
-                  <h2 className="text-sm sm:text-base font-semibold">
-                    {plan.title || "Untitled plan"}
-                  </h2>
-                </div>
-                <span className="rounded-full border border-orbit-border px-2.5 py-1 text-[10px] text-orbit-muted">
-                  {plan.timeframeWeeks} weeks · {plan.intensity}
-                </span>
-              </div>
+      {/* New plan form */}
+      <form
+        action={createPlan}
+        className="orbit-card p-5 sm:p-6 space-y-4 rounded-3xl border border-orbit-border/70"
+      >
+        <h2 className="text-sm sm:text-base font-semibold">Start a new plan</h2>
 
-              <p className="text-xs text-orbit-muted leading-relaxed line-clamp-3">
-                {plan.goalInput}
-              </p>
-
-              <div className="flex items-center justify-between text-[11px] text-orbit-muted">
-                <span>
-                  Created:{" "}
-                  {plan.createdAt.toLocaleDateString("en-CA", {
-                    year: "numeric",
-                    month: "short",
-                    day: "2-digit",
-                  })}
-                </span>
-                <Link
-                  href={`/app/plans/${plan.id}`}
-                  className="hover:text-white underline underline-offset-2"
-                >
-                  View details
-                </Link>
-              </div>
-            </div>
-          ))}
+        <div className="space-y-2">
+          <label
+            htmlFor="goalInput"
+            className="text-xs sm:text-sm font-medium text-orbit-muted"
+          >
+            What do you want Orbit to help with?
+          </label>
+          <textarea
+            id="goalInput"
+            name="goalInput"
+            rows={3}
+            placeholder='e.g. "I want to get fitter over the next 3 months while working full-time."'
+            className="w-full rounded-xl border border-orbit-border bg-black/60 px-4 py-3 text-sm sm:text-base outline-none focus:border-orbit-pink/70 resize-none"
+          />
         </div>
-      ) : (
-        <div className="orbit-card p-6 sm:p-8 space-y-4">
-          <h2 className="text-sm sm:text-base font-semibold">
-            You don&apos;t have any plans yet
-          </h2>
-          <p className="text-xs sm:text-sm text-orbit-muted max-w-md">
-            When you create a plan, Orbit will turn your goal and timeframe into
-            something structured you can follow. For now, everything here is
-            just waiting for your first idea.
-          </p>
-          <div>
-            <Link
-              href="/app/plans/new"
-              className="rounded-full bg-[linear-gradient(135deg,#ff6cab,#7366ff)] px-4 py-2 text-xs sm:text-sm font-semibold text-black hover:opacity-90 transition inline-flex items-center justify-center"
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <label
+              htmlFor="timeframeWeeks"
+              className="text-xs sm:text-sm font-medium text-orbit-muted"
             >
-              New plan
-            </Link>
+              Rough timeframe
+            </label>
+            <select
+              id="timeframeWeeks"
+              name="timeframeWeeks"
+              defaultValue="12"
+              className="w-full rounded-xl border border-orbit-border bg-black/60 px-4 py-3 text-sm sm:text-base outline-none focus:border-orbit-pink/70"
+            >
+              <option value="4">About 1 month</option>
+              <option value="8">About 2 months</option>
+              <option value="12">About 3 months</option>
+              <option value="24">About 6 months</option>
+              <option value="52">About 1 year</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label
+              htmlFor="intensity"
+              className="text-xs sm:text-sm font-medium text-orbit-muted"
+            >
+              How intense should this be?
+            </label>
+            <select
+              id="intensity"
+              name="intensity"
+              defaultValue="steady"
+              className="w-full rounded-xl border border-orbit-border bg-black/60 px-4 py-3 text-sm sm:text-base outline-none focus:border-orbit-pink/70"
+            >
+              <option value="gentle">Gentle – low pressure</option>
+              <option value="steady">Steady – balanced</option>
+              <option value="intense">Intense – fast results</option>
+            </select>
           </div>
         </div>
-      )}
 
-      <p className="text-[11px] text-orbit-muted">
-        Orbit is an early prototype. Plans you create here are saved in your
-        database so you can revisit and edit them.
-      </p>
+        <div className="flex justify-end pt-2">
+          <button
+            type="submit"
+            className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#ff6cab,#7366ff)] px-6 py-2.5 text-sm sm:text-base font-semibold text-black hover:opacity-90 transition"
+          >
+            Create plan
+          </button>
+        </div>
+      </form>
+
+      {/* Existing plans */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm sm:text-base font-semibold">Existing plans</h2>
+          <p className="text-xs sm:text-sm text-orbit-muted">
+            {plans.length === 0
+              ? "No plans yet. Start one above to see it here."
+              : `${plans.length} plan${plans.length === 1 ? "" : "s"}.`}
+          </p>
+        </div>
+
+        {plans.length > 0 && (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {plans.map((plan) => (
+              <Link
+                key={plan.id}
+                href={`/app/plans/${plan.id}`}
+                className="orbit-card group p-4 sm:p-5 rounded-2xl border border-orbit-border/70 hover:border-orbit-pink/70 transition flex flex-col justify-between"
+              >
+                <div className="space-y-2">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-orbit-muted">
+                    {plan.status === "ready"
+                      ? "Generated plan"
+                      : plan.status === "generating"
+                      ? "Generating…"
+                      : "Draft"}
+                  </p>
+                  <h3 className="text-sm sm:text-base font-semibold line-clamp-2">
+                    {plan.title || "Untitled plan"}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-orbit-muted line-clamp-3">
+                    {plan.goalInput}
+                  </p>
+                </div>
+
+                <div className="mt-4 flex items-center justify-between text-[11px] text-orbit-muted">
+                  <span>
+                    Created{" "}
+                    {plan.createdAt.toLocaleDateString("en-CA", {
+                      year: "numeric",
+                      month: "short",
+                      day: "2-digit",
+                    })}
+                  </span>
+                  <span>Open →</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

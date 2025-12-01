@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { GeneratePlanButton } from "./GeneratePlanButton";
 import { PlanStepFlow, type FlowStep } from "./PlanStepFlow";
+import { stackServerApp } from "@/stack/server";
 
 type PageProps = {
   params: { id: string };
@@ -137,6 +138,8 @@ function getPlanIdentity(goalInput: string, intensity: string) {
 async function updatePlan(formData: FormData) {
   "use server";
 
+  const user = await stackServerApp.getUser({ or: "redirect" });
+
   const id = (formData.get("planId") as string | null) ?? null;
   if (!id) throw new Error("Missing plan id");
 
@@ -162,6 +165,15 @@ async function updatePlan(formData: FormData) {
       ? rawIntensity
       : "steady";
 
+  // Optional: ensure the plan belongs to this user
+  const existing = await prisma.plan.findFirst({
+    where: { id, userId: user.id },
+  });
+
+  if (!existing) {
+    throw new Error("Plan not found for this user.");
+  }
+
   await prisma.plan.update({
     where: { id },
     data: {
@@ -177,8 +189,13 @@ async function updatePlan(formData: FormData) {
 }
 
 export default async function PlanPage({ params }: PageProps) {
-  const plan = await prisma.plan.findUnique({
-    where: { id: params.id },
+  const user = await stackServerApp.getUser({ or: "redirect" });
+
+  const plan = await prisma.plan.findFirst({
+    where: {
+      id: params.id,
+      userId: user.id, // ⬅️ only load if it belongs to this user
+    },
     include: {
       stepProgresses: true,
     },

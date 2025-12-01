@@ -11,6 +11,7 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.0.1",
     "@prisma/client": "^7.0.1",
+    "@stackframe/stack": "^2.8.54",
     "@types/pg": "^8.15.6",
     "next": "15.1.6",
     "pg": "^8.16.3",

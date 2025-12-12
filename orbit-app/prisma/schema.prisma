@@ -16,23 +16,30 @@ model User {
   stackUserId String   @unique
   email       String   @unique
   name        String?
-  imageUrl    String?        // avatar URL (Orbit-controlled or from Stack)
+  imageUrl    String?
 
   // Profile fields
   username    String?  @unique
-  headline    String?  // short tagline under their name
-  bio         String?  // longer free text
-  timezone    String?  // e.g. "America/Vancouver"
+  headline    String?
+  bio         String?
+  timezone    String?
 
-  // Planning preferences
-  defaultIntensity String? // "gentle" | "steady" | "intense"
-  defaultWeeks     Int?    // e.g. 12
+  defaultIntensity String?
+  defaultWeeks     Int?
+
+  // ===== Billing (Stripe) =====
+  plan               String   @default("free") // "free" | "pro"
+  stripeCustomerId   String?  @unique
+  stripeSubscriptionId String? @unique
+  subscriptionStatus String?  // "active" | "trialing" | "past_due" | "canceled" | ...
+  currentPeriodEnd   DateTime?
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   plans       Plan[]
 }
+
 
 model Plan {
   id             String   @id @default(cuid())
